@@ -42,15 +42,14 @@ python -m venv venv
 source venv/Scripts/activate  # or venv/bin/activate on Linux/macOS
 
 # Step 3: Install dependencies
-pip install -r requirements.txt  # create this if not already
-
+pip install -r requirements.txt  
 # Step 4: Set up database
 python manage.py makemigrations
 python manage.py migrate
 
 # Step 5: Run server
 python manage.py runserver
-🔐 Make sure your .env or settings.py includes correct DB credentials.
+
 
 🌐 Frontend Setup
 bash
