@@ -108,8 +108,8 @@ VITE_API_BASE_URL=http://localhost:8000
 
 🧑‍💼 Author
 Ayush Kumar Vyas
-🔗 GitHub: your-github
-📧 Email: your.email@example.com
+🔗 GitHub: ayushvyasonwork
+📧 Email: work.ayushvyas17@gmail.com
 
 📄 License
 This project is licensed under the MIT License.
