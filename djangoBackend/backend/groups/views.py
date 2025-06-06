@@ -168,3 +168,60 @@ class ApproveJoinRequestView(APIView):
             })
 
         return Response({"message": f"{target_user.username} has been added to the group."})
+
+class ChangeGroupMemberRoleView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        group_id = request.data.get("group_id")
+        target_user_id = request.data.get("user_id")
+        new_role_id = request.data.get("role_id")
+
+        user = request.user
+
+        # Check basic inputs
+        if not (group_id and target_user_id and new_role_id):
+            return Response({"error": "Missing data"}, status=400)
+
+        try:
+            group = Group.objects.get(id=group_id)
+            target_user = User.objects.get(id=target_user_id)
+            new_role = Role.objects.get(id=new_role_id, group=group)
+        except (Group.DoesNotExist, User.DoesNotExist, Role.DoesNotExist):
+            return Response({"error": "Invalid group/user/role"}, status=404)
+
+        # Fetch requester's role in the group
+        try:
+            requester_gur = GroupUserRole.objects.get(user=user, group=group)
+        except GroupUserRole.DoesNotExist:
+            return Response({"error": "You are not a member of this group"}, status=403)
+
+        requester_role = requester_gur.role.name.lower()
+
+        # Fetch target user's role in the group
+        try:
+            target_gur = GroupUserRole.objects.get(user=target_user, group=group)
+        except GroupUserRole.DoesNotExist:
+            return Response({"error": "Target user is not a member of this group"}, status=404)
+
+        target_role = target_gur.role.name.lower()
+
+        # Logic: Admin cannot update Owner's role
+        if requester_role == "admin" and target_role == "owner":
+            return Response({"error": "Admin cannot change Owner's role"}, status=403)
+
+        # Admin can only update roles of members
+        if requester_role == "admin" and target_role == "admin":
+            return Response({"error": "Admin cannot change role of another Admin"}, status=403)
+
+        # Update the role
+        target_gur.role = new_role
+        target_gur.save()
+
+        # Send notification (implement real logic inside utils)
+        send_notification(
+            target_user,
+            f"Your role in group '{group.name}' has been changed to '{new_role.name}' by {user.email}."
+        )
+
+        return Response({"message": "Role updated successfully"}, status=200)

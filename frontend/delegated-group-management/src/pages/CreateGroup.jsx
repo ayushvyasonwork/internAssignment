@@ -1,48 +1,34 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../api/axiosInstance';
 
 const CreateGroup = () => {
   const [groupName, setGroupName] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
- const handleCreateGroup = async () => {
-  const token = localStorage.getItem('access_token');
+  const handleCreateGroup = async () => {
+    setError('');
 
-  if (!token) {
-    setError('You must be logged in to create a group.');
-    return;
-  }
-
-  if (!groupName.trim()) {
-    setError('Group name is required.');
-    return;
-  }
-
-  try {
-    const response = await fetch('http://localhost:8000/api/groups/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ name: groupName }),
-    });
-
-    const data = await response.json();
-    console.log('Group created:', data);
-
-    if (!response.ok) {
-      throw new Error(data.detail || 'Failed to create group');
+    if (!groupName.trim()) {
+      setError('Group name is required.');
+      return;
     }
 
-    // Redirect to /group/{id}
-    navigate(`/group/${data.id}`);
-  } catch (err) {
-    setError(err.message);
-  }
-};
+    try {
+      const response = await axiosInstance.post('/groups/', {
+        name: groupName,
+      });
 
+      console.log('Group created:', response.data);
+
+      // Redirect to /group/{id}
+      navigate(`/group/${response.data.id}`);
+    } catch (err) {
+      const errMsg = err.response?.data?.detail || 'Failed to create group';
+      setError(errMsg);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

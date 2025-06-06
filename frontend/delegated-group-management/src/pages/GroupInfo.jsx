@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import axiosInstance from '../api/axiosInstance';
 
 const GroupInfo = () => {
   const { groupId } = useParams();
@@ -9,48 +10,34 @@ const GroupInfo = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-   const fetchMembers = async () => {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    setError('You must be logged in.');
-    return;
-  }
+    const fetchMembers = async () => {
+      try {
+        const response = await axiosInstance.get(`/groups/${groupId}/members/`);
+        const data = response.data;
 
-  try {
-    const response = await fetch(`http://localhost:8000/api/groups/${groupId}/members/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+        // Promote is_org_admin users to Owner if not already
+        const updatedMembers = data.map((member) => {
+          if (member.is_org_admin && member.role !== 'Owner') {
+            return { ...member, role: 'Owner' };
+          }
+          return member;
+        });
 
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.detail || 'Failed to fetch members');
-    }
+        setMembers(updatedMembers);
 
-    const data = await response.json();
+        const token = localStorage.getItem('access_token');
+        const decoded = parseJwt(token);
+        setCurrentUserId(decoded.user_id);
 
-    // 🧠 Patch: Promote to "Owner" if is_org_admin but role is not already Owner
-    const updatedMembers = data.map((member) => {
-      if (member.is_org_admin && member.role !== 'Owner') {
-        return { ...member, role: 'Owner' };
+        const currentUser = updatedMembers.find((m) => m.id === decoded.user_id);
+        if (currentUser) {
+          setCurrentUserRole(currentUser.role);
+        }
+      } catch (err) {
+        const errMsg = err.response?.data?.detail || err.message;
+        setError(errMsg);
       }
-      return member;
-    });
-
-    setMembers(updatedMembers);
-
-    const decoded = parseJwt(token);
-    setCurrentUserId(decoded.user_id);
-
-    const currentUser = updatedMembers.find((m) => m.id === decoded.user_id);
-    if (currentUser) {
-      setCurrentUserRole(currentUser.role);
-    }
-  } catch (err) {
-    setError(err.message);
-  }
-};
+    };
 
     fetchMembers();
   }, [groupId]);
@@ -72,27 +59,11 @@ const GroupInfo = () => {
   };
 
   const handleRemove = async (userId) => {
-    const token = localStorage.getItem('access_token');
-
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/groups/${groupId}/remove-member/${userId}/`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to remove member');
-      }
-
+      await axiosInstance.delete(`/groups/${groupId}/remove-member/${userId}/`);
       setMembers((prev) => prev.filter((member) => member.id !== userId));
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.detail || err.message);
     }
   };
 

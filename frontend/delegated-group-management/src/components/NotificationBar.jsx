@@ -1,6 +1,7 @@
 import toast from 'react-hot-toast';
 import React, { useEffect, useState, useRef } from 'react';
 import { getUserIdFromToken } from '../utils/auth';
+import axios from '../api/axiosInstance';
 import { X } from 'lucide-react'; // You can use any icon lib or plain ❌
 const NotificationBar = () => {
   const [notifications, setNotifications] = useState([]);
@@ -37,31 +38,24 @@ const NotificationBar = () => {
 };
 
     return () => {
-      socketRef.current?.close();
+      socketRef.current.onclose = (event) => {
+  if (event.code !== 1000) {
+    toast.error('WebSocket disconnected unexpectedly.');
+  }
+};
     };
   }, []);
 
   const handleApprove = async (groupId, userId, index) => {
-    const token = localStorage.getItem('access_token');
-    try {
-      const res = await fetch(`http://localhost:8000/api/groups/${groupId}/approve/${userId}/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Approval failed');
-
-      toast.success(data.message);
-      removeNotification(index);
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
+  try {
+    const res = await axios.post(`/groups/${groupId}/approve/${userId}/`);
+    toast.success(res.data.message || 'User approved successfully');
+    removeNotification(index);
+  } catch (error) {
+    const errMsg = error.response?.data?.detail || error.message;
+    toast.error(errMsg);
+  }
+}
   const removeNotification = (indexToRemove) => {
     setNotifications((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
