@@ -140,3 +140,31 @@ class RemoveGroupMemberView(APIView):
         GroupUserRole.objects.filter(group=group, user=target_user).delete()
 
         return Response({"message": f"User {target_user.email} removed from group."}, status=200)
+
+class ApproveJoinRequestView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, group_id, user_id):
+        group = get_object_or_404(Group, id=group_id)
+        acting_user = request.user
+        target_user = get_object_or_404(User, id=user_id)
+
+        # Check permission
+        has_permission = GroupUserRole.objects.filter(
+            user=acting_user,
+            group=group,
+            role__name__in=["Admin", "Owner"]
+        ).exists()
+
+        if not has_permission:
+            return Response({"error": "Only Admins or Owners can approve join requests."}, status=403)
+
+        # Add target_user to group if not already
+        membership, created = GroupMembership.objects.get_or_create(group=group, user=target_user)
+        if created:
+            send_notification(target_user.id, {
+                "title": "Join Request Approved",
+                "message": f"Your request to join '{group.name}' was approved by {acting_user.username}."
+            })
+
+        return Response({"message": f"{target_user.username} has been added to the group."})

@@ -2,7 +2,6 @@ import toast from 'react-hot-toast';
 import React, { useEffect, useState, useRef } from 'react';
 import { getUserIdFromToken } from '../utils/auth';
 import { X } from 'lucide-react'; // You can use any icon lib or plain ❌
-
 const NotificationBar = () => {
   const [notifications, setNotifications] = useState([]);
   const socketRef = useRef(null);
@@ -14,34 +13,54 @@ const NotificationBar = () => {
     const wsUrl = `ws://localhost:8000/ws/notifications/${userId}/`;
     socketRef.current = new WebSocket(wsUrl);
 
-    socketRef.current.onopen = () => {
-      console.log('🔌 WebSocket connected');
+   socketRef.current.onmessage = (event) => {
+  try {
+    const data = JSON.parse(event.data);
+    const message = data.message;
+    const newNotification = {
+      id: `${message.title}-${message.message}-${message.user_id || ''}-${message.group_id || ''}`,
+      text: `${message.title}: ${message.message}`,
+      ...message,
     };
 
-    socketRef.current.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('new notification is ', data);
-        const newNotification = `${data.message.title}: ${data.message.message}`;
-        toast.success(newNotification);
-        setNotifications((prev) => [newNotification, ...prev.slice(0, 19)]);
-      } catch (e) {
-        console.error('Invalid WebSocket message', e);
-      }
-    };
+    // Check if already exists
+    setNotifications((prev) => {
+      const exists = prev.some((note) => note.id === newNotification.id);
+      if (exists) return prev;
+      return [newNotification, ...prev.slice(0, 19)];
+    });
 
-    socketRef.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    socketRef.current.onclose = () => {
-      console.warn('WebSocket disconnected');
-    };
+    toast.success(newNotification.text);
+  } catch (e) {
+    console.error('Invalid message:', e);
+  }
+};
 
     return () => {
       socketRef.current?.close();
     };
   }, []);
+
+  const handleApprove = async (groupId, userId, index) => {
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`http://localhost:8000/api/groups/${groupId}/approve/${userId}/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Approval failed');
+
+      toast.success(data.message);
+      removeNotification(index);
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   const removeNotification = (indexToRemove) => {
     setNotifications((prev) => prev.filter((_, i) => i !== indexToRemove));
@@ -59,13 +78,20 @@ const NotificationBar = () => {
               key={index}
               className="relative text-sm text-gray-700 bg-gray-50 px-4 py-2 rounded shadow-sm pr-10"
             >
-              {note}
+              {note.text}
+              {note.action === 'approve_request' && (
+                <button
+                  className="text-xs bg-green-500 text-white px-2 py-1 rounded ml-2 hover:bg-green-600"
+                  onClick={() => handleApprove(note.group_id, note.user_id, index)}
+                >
+                  Approve
+                </button>
+              )}
               <button
                 className="absolute top-1 right-2 text-gray-400 hover:text-red-600"
                 onClick={() => removeNotification(index)}
-                title="Dismiss"
               >
-                <X size={14} />
+                ❌
               </button>
             </li>
           ))
@@ -74,5 +100,6 @@ const NotificationBar = () => {
     </aside>
   );
 };
+
 
 export default NotificationBar;

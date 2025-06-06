@@ -41,6 +41,12 @@ const HomePage = () => {
           >
             Access All Your Groups
           </button>
+          <button
+            onClick={() => navigate('/join-group')}
+            className="w-full px-6 py-3 bg-black text-white rounded hover:bg-green-700 transition"
+          >
+            Join/Add in a group
+          </button>
         </div>
       </div>
     </div>

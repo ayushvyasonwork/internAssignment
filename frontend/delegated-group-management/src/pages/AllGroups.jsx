@@ -36,7 +36,7 @@ const AllGroups = () => {
 
     const interval = setInterval(() => {
       fetchGroups();
-    }, 1000); // Fetch every 1 second
+    }, 100000); // Fetch every 1 second
 
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);

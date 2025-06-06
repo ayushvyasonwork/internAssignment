@@ -50,13 +50,12 @@ const AssignUserToGroup = () => {
         },
         body: JSON.stringify({ user_id: userId }), // or additional data as needed
       });
-
       if (!assignRes.ok) {
         const data = await assignRes.json();
         throw new Error(data.detail || 'Failed to assign user to group');
       }
 
-      setMessage('User successfully added to group.');
+      setMessage(assignRes.json().then(data => data.message || 'User assigned successfully'));
     } catch (err) {
       setError(err.message);
     }
