@@ -1,38 +1,6 @@
 🛡️ Delegated Group Management System
 A full-stack web application for managing users, groups, roles, and permissions using Django (backend) and React with Vite (frontend).
 
-🗂️ Project Structure
-bash
-Copy
-Edit
-djangoBackend/
-├── backend/                  # Django project root
-
-│   ├── accounts/             # Custom user model and auth logic
-
-│   ├── groups/               # Group creation and management
-
-│   ├── roles/                # Role-based access control logic
-
-│   ├── notifications/        # WebSocket & notification system
-
-│   ├── backend/              # Django settings & routing
-
-│   ├── db.sqlite3            # SQLite database (for dev)
-
-│   └── manage.py             # Django CLI tool
-
-├── frontend delegated-group-management/   # React + Vite frontend
-
-│   ├── public/               # Static assets
-
-│   ├── src/                  # React components, pages, API services
-
-│   ├── package.json          # Frontend dependencies
-
-│   ├── vite.config.js        # Vite configuration
-
-│   └── index.html
 
 🧑‍💻 Tech Stack
 
